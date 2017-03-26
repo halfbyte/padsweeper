@@ -5,11 +5,11 @@
   <title>PadSweeper</title>
   <link rel="stylesheet" href="index.css">
 </head>
-<body onload="initMIDI()">
-  
+<body onload="initAll()">
+
   <h1>PadSweeper</h1>
-  
-  
+
+
   <TABLE ID=sqTable onmouseup="return false" style="margin: 2em auto;">
     <TR><TD CLASS=score COLSPAN=8>
     <DIV CLASS=counter ID=mines>&nbsp;</DIV>
@@ -229,5 +229,6 @@
   <p>Original JS implementation by <a href="https://birrell.org/andrew/minesweeper/">Andrew D. Birrell</a>.</p>
   <p>MIDI implementation by Jan 'halfbyte' Krutisch. <a href="https://github.com/halfbyte/padsweeper/">Source code available</a>.</p>
   <script src="index.js" charset="utf-8"></script>
+  <script src="midi.js" charset="utf-8"></script>
 </body>
 </html>

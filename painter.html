@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>title</title>
+
+</head>
+<body onload="initMIDI()">
+  <script type="text/javascript">
+  var image = [
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ],
+    [0, 0, 0, 0, 0, 0, 0, 0 ]
+  ];
+
+  function midiSendNoteOn(note, vel) {
+    if (!midiOut) {return;}
+    midiOut.send([144, note, vel]);
+  }
+
+
+  function initMIDI() {
+    var midiIn;
+    navigator.requestMIDIAccess().then(function(midiAccess) {
+      midiAccess.inputs.forEach(function(input) {
+        if (input.name === 'Launchpad Mini') {
+          midiIn = input;
+        }
+      });
+      midiAccess.outputs.forEach(function(output) {
+        if (output.name === 'Launchpad Mini') {
+          midiOut = output;
+        }
+      });
+      if (midiOut) {
+        var x,y;
+        midiOut.send([0xb0, 0, 0]);
+        midiOut.send([0xb0, 0, 0x28]);
+        midiIn.addEventListener('midimessage', midiInputHandler);
+      }
+    });
+  }
+  </script>
+</body>
+</html>

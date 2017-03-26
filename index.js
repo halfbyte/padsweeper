@@ -16,13 +16,13 @@ var mines;                          // set by calling "init"
 
 
 /* "adjacent" and "exposed" are indexed by square number = y*width+x */
-  
+
 /* "adjacent" contains the board layout and derived state.  adjacent[i] is
    the count of mines adjacent to square i, or "mine" if square i contains
    a mine.  */
 var adjacent = [];         // count of adjacent mines
 var mine = 9;                       // adjacency count for a mine
-  
+
 /* "exposed" contains the exposure state of the board.
    Values > "unexposed" represent exposed squares; these either have the
    distinquished values "exploded" or "incorrect", or some greater value
@@ -46,7 +46,7 @@ var erasing = 0;                    // smiley absent during initialization
 var sad = 1;                        // smiley value after loss
 var bored = 2;                      // smiley value during game
 var happy = 3;                      // smiley value after win
-  
+
 var flags = 0;                      // count of flags currently set
 var remaining = 0;                  // count of unexposed squares
 var sadness = happy;                // whether smiley is sad
@@ -94,7 +94,7 @@ function setSq(thisSquare) {
 	var exp = exposed[thisSquare];
 	var className = "sq";
 	var s;
-  
+
 	if (exp <= unexposed) {
 		// unexposed squares, including flagged or queried
 		if (exp == unexposed) {
@@ -352,157 +352,6 @@ function init(w, t, m) {
 	erase();
 }
 
-/*************************** MIDI STUFF ***************************/
-/* (c) 2017 Jan 'halfbyte' Krutisch                               */
-/*                                                                */
-/******************************************************************/
-
-var midiIn, midiOut;
-var useLaunchpad = false;
-var launchpadColors = {
-  unexposed: 0x1D,
-  exploded: 0x0F,
-  mine: 0x0D,
-  flagged: 0x0F,
-  questioned: 0x0B,
-  adjacent: [0x0c, 0x1C, 0x2C, 0x3C, 0x2D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E],
-  error: 0x2f
+function initAll() {
+  init(8, 64, 10);
 }
-var midiFlagMode = false;
-
-setSquareOld = setSq;
-function newSetSq(thisSq) {
-  setSquareOld(thisSq);
-  midiSetSq(thisSq);
-}
-setSq = newSetSq;
-
-function launchpadPos(thisSq) {
-  var row = Math.floor(thisSq / 8);
-  var col = Math.floor(thisSq % 8);
-  return row * 16 + col;
-}
-
-function minePos(launchpadNote) {
-  var row = Math.floor(launchpadNote / 16);
-  var col = Math.floor(launchpadNote % 16);
-  return row * 8 + col;
-}
-
-function midiInputHandler(event) {
-  var msg = event.data;
-  var row = Math.floor(msg[1] / 16);
-  var col = Math.floor(msg[1] % 16);
-  var thisSquare = minePos(msg[1]);
-  if (msg[0] === 144 && msg[2] === 127) {
-    // note on
-
-    if (col < 8) { 
-      if (midiFlagMode) {
-        clickSq({button: 2}, thisSquare); 
-      } else {
-        clickSq({}, thisSquare);
-        if (exposed[thisSquare] > unexposed) {
-          midiShowAdjacent(thisSquare);
-        }
-
-      }
-    } else {
-      if (row === 6) { clickSmiley(); }
-      if (row === 7) { midiFlagMode = !midiFlagMode; midiSendNoteOn(120, midiFlagMode ? 0x0B: 0x0F); }
-    }
-    
-  } else if (msg[0] === 144 && msg[2] === 0) {
-    if (col < 8) { 
-      midiHideAdjacent();
-    } else {
-      // if (row === 7) { midiFlagMode = false; midiSendNoteOn(120, 0x0F); }
-    }
-    
-    
-  } else if (msg[0] === 176) {
-    console.log(Array.from(event.data));
-  } else {
-    console.log(Array.from(event.data));  
-  }
-}
-
-function midiShowAdjacent(thisSquare) {
-  var adj = adjacent[thisSquare];
-  var i;
-  for(i=0;i<8;i++) {
-    if (adj > i) {
-      midiOut.send([176, 104 + i, launchpadColors.adjacent[i+1]])
-    } else {
-      midiOut.send([176, 104 + i, launchpadColors.adjacent[0]]);  
-    }
-  }
-}
-function midiHideAdjacent() {
-  var i;
-  for(i=0;i<8;i++) {
-    midiOut.send([176, 104 + i, launchpadColors.adjacent[0]]);
-  }
-}
-
-function midiSendNoteOn(note, vel) {
-  if (!midiOut) {return;}
-  midiOut.send([144, note, vel]);
-}
-
-function midiSetSq(thisSquare) {
-  var exp = exposed[thisSquare];
-	var className = "sq";
-	var s;
-  
-  if (exp <= unexposed) {
-    // unexposed squares, including flagged or queried
-    if (exp == unexposed) {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.unexposed);
-    } else if (exp == flagged) {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.flagged);
-    } else {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.questioned);    
-    }
-  } else {
-    // exposed squares
-    var adj = adjacent[thisSquare];
-    if (exp == exploded) {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.exploded);
-    } else if (exp == incorrect) {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.error);
-    } else if (adj == mine) {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.exploded);
-    } else {
-      midiSendNoteOn(launchpadPos(thisSquare), launchpadColors.adjacent[adj]);    
-    }
-  }
-  
-}
-
-function initMIDI() {
-  navigator.requestMIDIAccess().then(function(midiAccess) {
-    midiAccess.inputs.forEach(function(input) {
-      if (input.name === 'Launchpad Mini') {
-        midiIn = input;
-      }
-    });
-    midiAccess.outputs.forEach(function(output) {
-      if (output.name === 'Launchpad Mini') {
-        midiOut = output;
-      }
-    });
-    if (midiIn && midiOut) { 
-      console.log("YES");
-      useLaunchpad = true;
-      midiIn.addEventListener('midimessage', midiInputHandler);
-      midiOut.send([0xb0, 0, 0]);
-      midiOut.send([0xb0, 0, 0x28]);
-      midiSendNoteOn(104, 0x1D);
-      midiSendNoteOn(120, 0x0F);
-      init(8, 64, 10);
-    }
-  });
-}
-
-
